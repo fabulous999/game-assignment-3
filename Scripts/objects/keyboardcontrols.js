@@ -4,9 +4,15 @@ var objects;
     var KeyboardControls = (function () {
         // CONSTRUCTOR ++++++++++++++++++++++++++    
         function KeyboardControls() {
+            this.enable = false;
             document.addEventListener('keydown', this.onKeyDown.bind(this), false);
             document.addEventListener('keyup', this.onKeyUp.bind(this), false);
         }
+        /*  public enable():void {  }
+   public disable():void {     document.removeEventListener('keydown', this.onKeyDown.bind(this), false);
+              document.removeEventListener('keyup', this.onKeyUp.bind(this), false);
+          }
+  */
         // PUBLIC METHODS
         KeyboardControls.prototype.onKeyDown = function (event) {
             switch (event.keyCode) {

@@ -7,13 +7,19 @@ module objects {
         public moveLeft: boolean;
         public moveRight: boolean;
         public jump: boolean;
+        public enable : boolean;
         // CONSTRUCTOR ++++++++++++++++++++++++++    
-        constructor() {
-
+        constructor() {   
+            this.enable = false
             document.addEventListener('keydown', this.onKeyDown.bind(this), false);
             document.addEventListener('keyup', this.onKeyUp.bind(this), false);
         }
-
+        
+      /*  public enable():void {  }
+ public disable():void {     document.removeEventListener('keydown', this.onKeyDown.bind(this), false);
+            document.removeEventListener('keyup', this.onKeyUp.bind(this), false);
+        }
+*/
         // PUBLIC METHODS
         public onKeyDown(event: KeyboardEvent): void {
             switch (event.keyCode) {

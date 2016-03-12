@@ -63,7 +63,22 @@ var game = (() => {
     var sphereMaterial: Physijs.Material;
     var sphere: Physijs.Mesh;
     var keyboardControls: objects.KeyboardControls;
-
+    var isgrounded : boolean;
+    var velocity : Vector3 = new Vector3(0,0,0) ;
+    var prevtime : number =0;
+    var obstical: Physijs.Mesh;
+    var obsticalGeometry: CubeGeometry;
+    var obsticalMaterial: Physijs.Material;
+  var random = function Randome(low, high) {
+            return Math.random() * (high - low) + low;
+        };
+        function randomIntInc(low, high) {
+            return Math.floor(Math.random() * (high - low + 1) + low);
+        }
+        var numbers = new Array(10);
+        for (var i = 0; i < numbers.length; i++) {
+            numbers[i] = randomIntInc(1, 10);
+        }
     function init() {
         // Create to HTMLElements
         blocker = document.getElementById("blocker");
@@ -73,10 +88,12 @@ var game = (() => {
         havePointerLock = 'pointerLockElement' in document ||
             'mozPointerLockElement' in document ||
             'webkitPointerLockElement' in document;
-
+        keyboardControls = new objects.KeyboardControls();
+        
         if (havePointerLock) {
+        
             element = document.body;
-
+        
             instructions.addEventListener('click', () => {
                 
                 // Ask the user for pointer lock
@@ -112,16 +129,7 @@ var game = (() => {
         setupRenderer(); // setup the default renderer
 	
         setupCamera(); // setup the camera
-        var random = function Randome(low, high) {
-            return Math.random() * (high - low) + low;
-        };
-        function randomIntInc(low, high) {
-            return Math.floor(Math.random() * (high - low + 1) + low);
-        }
-        var numbers = new Array(10);
-        for (var i = 0; i < numbers.length; i++) {
-            numbers[i] = randomIntInc(1, 10);
-        }
+      
 
 
         // Spot Light
@@ -153,30 +161,29 @@ var game = (() => {
         console.log("Added Burnt Ground to scene");
  
         // Player Object
-       
-        for (var i = 0; i < 5; i++) {
-        playerGeometry = new BoxGeometry(2, 2, 2);
+     playerGeometry = new BoxGeometry(2, 2, 2);
         playerMaterial = Physijs.createMaterial(new LambertMaterial({color: 0x00ff00}), 0.4, 0);   
-        player = new Physijs.BoxMesh(playerGeometry, playerMaterial, 1);
+        player = new Physijs.BoxMesh(playerGeometry, playerMaterial,0.2);
       // player.position.set(0, 30, 10);
       player.receiveShadow = true;
         player.castShadow = true;
         player.name = "Player";
         
      
-         player.position.set(randomIntInc(1, 10), randomIntInc(1, 10), randomIntInc(1, 10));
+         player.position.set(randomIntInc(3, 5), randomIntInc(3, 5), randomIntInc(3, 5));
         scene.add(player);
         console.log("Added Player to Scene  "  +  player.position.y);
-        }
-    
+    normal();
     
         
         player.addEventListener('collision', (event) => {
            if(event.name === "Ground") {
                console.log("player hit the ground");
+               isgrounded = true;
            }
            if(event.name === "Sphere") {
                console.log("player hit the sphere");
+               isgrounded = false
            }
         });
         
@@ -194,8 +201,7 @@ var game = (() => {
         scene.add(sphere);
         console.log("Added Sphere to Scene");
         
-        keyboardControls = new objects.KeyboardControls();
-        
+player.add(camera);
         // add controls
         gui = new GUI();
         control = new Control();
@@ -215,10 +221,12 @@ var game = (() => {
     //PointerLockChange Event Handler
     function pointerLockChange(event): void {
         if (document.pointerLockElement === element) {
+           keyboardControls.enable = true;
             // enable our mouse and keyboard controls
             blocker.style.display = 'none';
         } else {
             // disable our mouse and keyboard controls
+           keyboardControls.enable = false;
             blocker.style.display = '-webkit-box';
             blocker.style.display = '-moz-box';
             blocker.style.display = 'box';
@@ -257,23 +265,42 @@ var game = (() => {
     // Setup main game loop
     function gameLoop(): void {
         stats.update();
-        
-        if(keyboardControls.moveForward) {
-            console.log("Moving Forward");
+        if(keyboardControls.enable){
+           velocity = new Vector3();
+            var time : number = performance.now();
+            var delta : number = (time-prevtime) / 1000
+            if (isgrounded) {
+                if (keyboardControls.moveForward) {
+                    console.log("Moving Forward");
+                    velocity.z -= 400  * delta;
+                }
+                if (keyboardControls.moveLeft) {
+                    console.log("Moving left");
+                    velocity.x -= 400  * delta;
+                }
+                if (keyboardControls.moveBackward) {
+                    console.log("Moving Backward");
+                    velocity.z += 400  * delta;
+                }
+                if (keyboardControls.moveRight) {
+                    console.log("Moving Right");
+                    velocity.x += 400  * delta;
+                }
+                if (keyboardControls.jump) {
+                    console.log("Jumping");
+                    velocity.y += 2000.0  * delta;
+                    if(player.position.y > 4)
+                    {
+                      //  isgrounded = false
+                        
+                    }
+                    
+                }
         }
-        if(keyboardControls.moveLeft) {
-            console.log("Moving left");
-        }
-        if(keyboardControls.moveBackward) {
-            console.log("Moving Backward");
-        }
-        if(keyboardControls.moveRight) {
-            console.log("Moving Right");
-        }
-        if(keyboardControls.jump) {
-            console.log("Jumping");
-        }
-        
+    }
+    prevtime = time;
+    player.applyCentralForce(velocity);
+    
         // render using requestAnimationFrame
         requestAnimationFrame(gameLoop);
 	
@@ -297,8 +324,24 @@ var game = (() => {
         camera.position.set(0, 10, 30);
         camera.lookAt(new Vector3(0, 0, 0));
         console.log("Finished setting up Camera...");
+        
     }
-
+       var normal = function Normal() {
+        
+        for (var i = 0; i < 50; i++) {
+          obsticalGeometry = new BoxGeometry(2, 2, 2);
+        obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
+        obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
+      // player.position.set(0, 30, 10);
+      obstical.receiveShadow = true;
+        obstical.castShadow = true;
+     //   obstical.name = "obstical";
+         obstical.position.set(randomIntInc(-10, 10), randomIntInc(-10, 10), randomIntInc(-10, 10));
+        scene.add(obstical);
+        console.log("Added Player to Scene  "  +  obstical.position.y);
+   
+        }   
+       }
     window.onload = init;
 
     return {
