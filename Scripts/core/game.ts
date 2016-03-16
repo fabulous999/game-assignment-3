@@ -69,6 +69,11 @@ var game = (() => {
     var obstical: Physijs.Mesh;
     var obsticalGeometry: CubeGeometry;
     var obsticalMaterial: Physijs.Material;
+     var b : number = 0;
+     var _pointer = Point;
+     var ambient : AmbientLight;
+  
+     
   var random = function Randome(low, high) {
             return Math.random() * (high - low) + low;
         };
@@ -116,9 +121,10 @@ var game = (() => {
 
         // Scene changes for Physijs
         scene.name = "Main";
-        scene.fog = new THREE.Fog(0xffffff, 0 , 750);
-        scene.setGravity(new THREE.Vector3(0, -10, 0));
-        
+        scene.fog = new THREE.Fog(0xffffff, 100 , 750);
+        setInterval(function(){   scene.setGravity(new THREE.Vector3(randomIntInc(-2, 2), randomIntInc(-10, 1)/*-10*/, randomIntInc(-2, 2))); console.log(randomIntInc) /*alert("Hello");*/ }, 1000);
+
+     // console.log("safasf"+ scene.setGravity.call);
         scene.addEventListener('update', () => {
            scene.simulate(undefined, 2); 
         });
@@ -150,11 +156,19 @@ var game = (() => {
         spotLight.name = "Spot Light";
         scene.add(spotLight);
         console.log("Added spotLight to scene");
+        ambient = new AmbientLight(0xffffff);
+      //  ambient.castShadow = true;
+        ambient.getWorldScale;
+       ambient.position.set(20, 40, -15);
+     //   ambient.shadowDarkness = 1;
+        ambient.scale.set(1000,1000,1000);
+        scene.add(ambient);
         
         // Burnt Ground
-        groundGeometry = new BoxGeometry(32, 1, 32);
+        groundGeometry = new BoxGeometry(3200, 1, 3200);
+         ground = new Physijs.ConvexMesh(groundGeometry, groundMaterial, 0);
         groundMaterial = Physijs.createMaterial(new LambertMaterial({ color: 0xe75d14 }), 0.4, 0);
-        ground = new Physijs.ConvexMesh(groundGeometry, groundMaterial, 0);
+       
         ground.receiveShadow = true;
         ground.name = "Ground";
         scene.add(ground);
@@ -169,12 +183,16 @@ var game = (() => {
         player.castShadow = true;
         player.name = "Player";
         
-     
+     player.rotation.x =0;
          player.position.set(randomIntInc(3, 5), randomIntInc(3, 5), randomIntInc(3, 5));
         scene.add(player);
+        player.add(camera);
+        
+        // setInterval(function(){ camera.lookAt(ground.position); console.log("ewfewf");  /*alert("Hello");*/ }, 1);
+
         console.log("Added Player to Scene  "  +  player.position.y);
     normal();
-    
+    diferentsize();
         
         player.addEventListener('collision', (event) => {
            if(event.name === "Ground") {
@@ -187,7 +205,7 @@ var game = (() => {
            }
         });
         
-        
+
         
         
         // Sphere Object
@@ -201,7 +219,7 @@ var game = (() => {
         scene.add(sphere);
         console.log("Added Sphere to Scene");
         
-player.add(camera);
+
         // add controls
         gui = new GUI();
         control = new Control();
@@ -268,34 +286,44 @@ player.add(camera);
         if(keyboardControls.enable){
            velocity = new Vector3();
             var time : number = performance.now();
-            var delta : number = (time-prevtime) / 1000
+            var delta : number = 1// (time-prevtime) / 1000
             if (isgrounded) {
                 if (keyboardControls.moveForward) {
                     console.log("Moving Forward");
-                    velocity.z -= 400  * delta;
+                    velocity.z -= 4  * delta;
                 }
                 if (keyboardControls.moveLeft) {
                     console.log("Moving left");
-                    velocity.x -= 400  * delta;
+                    velocity.x -= 4  * delta;
                 }
                 if (keyboardControls.moveBackward) {
                     console.log("Moving Backward");
-                    velocity.z += 400  * delta;
+                    velocity.z += 4  * delta;
                 }
                 if (keyboardControls.moveRight) {
                     console.log("Moving Right");
-                    velocity.x += 400  * delta;
+                    velocity.x += 4  * delta;
+                }
+                if (keyboardControls.shift) {
+                    console.log("shiy");
+                   // velocity.x * 2 * delta;
+                   // velocity.y * 2 * delta;
+                   camera.lookAt(ground.position);
+                   player.rotation.set(0,0,0);
+                   velocity.y += -20.0; 
                 }
                 if (keyboardControls.jump) {
                     console.log("Jumping");
-                    velocity.y += 2000.0  * delta;
+                     camera.lookAt(ground.position);
+                   player.rotation.set(0,0,0);
+                    velocity.y += 20.0  * delta;
                     if(player.position.y > 4)
                     {
                       //  isgrounded = false
-                        
                     }
                     
                 }
+                console.log(velocity.x);
         }
     }
     prevtime = time;
@@ -328,20 +356,44 @@ player.add(camera);
     }
        var normal = function Normal() {
         
-        for (var i = 0; i < 50; i++) {
+        for (var i = 0; i < 30; i++) {
           obsticalGeometry = new BoxGeometry(2, 2, 2);
-        obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
-        obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
+                obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
+       // obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
+  
       // player.position.set(0, 30, 10);
       obstical.receiveShadow = true;
         obstical.castShadow = true;
      //   obstical.name = "obstical";
-         obstical.position.set(randomIntInc(-10, 10), randomIntInc(-10, 10), randomIntInc(-10, 10));
+         obstical.position.set(randomIntInc(-1, 40), randomIntInc(-1, 40), randomIntInc(-1, 50));
         scene.add(obstical);
-        console.log("Added Player to Scene  "  +  obstical.position.y);
+       
+      /*  if (obstical.position.x > -100 || obstical.position.x > 100) {
+         obstical.position.x  = obstical.position.x * -1;
+        }*/
+      
+    //console.log("Added Player to Scene  "  +  obstical.position.x);
+        
+        }   
+       }
+           var diferentsize = function Diferentsize() {
+        
+        for (var i = 0; i < 100; i++) {
+          obsticalGeometry = new BoxGeometry(randomIntInc(1,10),randomIntInc(1,10),randomIntInc(1,10));
+               obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
+      //  obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
+   
+      // player.position.set(0, 30, 10);
+      obstical.receiveShadow = true;
+        obstical.castShadow = true;
+     //   obstical.name = "obstical";
+         obstical.position.set(randomIntInc(-10, 100), randomIntInc(-10, 100), randomIntInc(-10, 100));
+        scene.add(obstical);
+      //  console.log("Added Player to Scene  "  +  obstical.position.y);
    
         }   
        }
+       
     window.onload = init;
 
     return {
