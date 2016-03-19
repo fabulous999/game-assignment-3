@@ -26,6 +26,8 @@ var Face3 = THREE.Face3;
 var Point = objects.Point;
 var CScreen = config.Screen;
 var Clock = THREE.Clock;
+var LineBasicMaterial = THREE.LineBasicMaterial;
+var Line = THREE.Line;
 //Custom Game Objects
 var gameObject = objects.gameObject;
 // Setup a Web Worker for Physijs
@@ -65,6 +67,10 @@ var game = (function () {
     var b = 0;
     var _pointer = Point;
     var ambient;
+    var mouseControls;
+    var directionLineMaterial;
+    var directionLineGeometry;
+    var directionLine;
     var random = function Randome(low, high) {
         return Math.random() * (high - low) + low;
     };
@@ -84,6 +90,7 @@ var game = (function () {
             'mozPointerLockElement' in document ||
             'webkitPointerLockElement' in document;
         keyboardControls = new objects.KeyboardControls();
+        mouseControls = new objects.MouseControls();
         if (havePointerLock) {
             element = document.body;
             instructions.addEventListener('click', function () {
@@ -104,7 +111,7 @@ var game = (function () {
         // Scene changes for Physijs
         scene.name = "Main";
         scene.fog = new THREE.Fog(0xffffff, 100, 750);
-        setInterval(function () { scene.setGravity(new THREE.Vector3(randomIntInc(-2, 2), randomIntInc(-10, 1) /*-10*/, randomIntInc(-2, 2))); console.log(randomIntInc); /*alert("Hello");*/ }, 1000);
+        setInterval(function () { scene.setGravity(new THREE.Vector3(randomIntInc(-20, 20), randomIntInc(-15, 5) /*-10*/, randomIntInc(-20, 20))); console.log(randomIntInc); /*alert("Hello");*/ }, console.log("someyt"), 3000);
         // console.log("safasf"+ scene.setGravity.call);
         scene.addEventListener('update', function () {
             scene.simulate(undefined, 2);
@@ -198,12 +205,14 @@ var game = (function () {
     function pointerLockChange(event) {
         if (document.pointerLockElement === element) {
             keyboardControls.enable = true;
+            mouseControls.enabled = true;
             // enable our mouse and keyboard controls
             blocker.style.display = 'none';
         }
         else {
             // disable our mouse and keyboard controls
             keyboardControls.enable = false;
+            mouseControls.enabled = false;
             blocker.style.display = '-webkit-box';
             blocker.style.display = '-moz-box';
             blocker.style.display = 'box';
@@ -237,11 +246,23 @@ var game = (function () {
     // Setup main game loop
     function gameLoop() {
         stats.update();
+        checkcontrols();
+        //   obstical.quaternion.set(1,1,1,1);
+        player.rotation.x = 0;
+        player.rotation.y = 0;
+        player.rotation.z = 0;
+        // render using requestAnimationFrame
+        requestAnimationFrame(gameLoop);
+        // render the scene
+        renderer.render(scene, camera);
+    }
+    function checkcontrols() {
         if (keyboardControls.enable) {
             velocity = new Vector3();
             var time = performance.now();
             var delta = 1; // (time-prevtime) / 1000
             if (isgrounded) {
+                var direction = new Vector3(0, 0, 0);
                 if (keyboardControls.moveForward) {
                     console.log("Moving Forward");
                     velocity.z -= 4 * delta;
@@ -260,29 +281,41 @@ var game = (function () {
                 }
                 if (keyboardControls.shift) {
                     console.log("shiy");
-                    // velocity.x * 2 * delta;
-                    // velocity.y * 2 * delta;
-                    camera.lookAt(ground.position);
-                    player.rotation.set(0, 0, 0);
-                    velocity.y += -20.0;
                 }
                 if (keyboardControls.jump) {
                     console.log("Jumping");
                     camera.lookAt(ground.position);
-                    player.rotation.set(0, 0, 0);
                     velocity.y += 20.0 * delta;
                     if (player.position.y > 4) {
                     }
                 }
+                player.setDamping(0.7, 0.1);
+                // Changing player's rotation
+                player.setAngularVelocity(new Vector3(0, mouseControls.yaw, 0));
+                direction.addVectors(direction, velocity);
+                direction.applyQuaternion(player.quaternion);
+                if (Math.abs(player.getLinearVelocity().x) < 20 && Math.abs(player.getLinearVelocity().y) < 10) {
+                    player.applyCentralForce(direction);
+                }
                 console.log(velocity.x);
+                cameraLook();
             }
+            mouseControls.pitch = 0;
+            mouseControls.yaw = 0;
+            prevtime = time;
         }
-        prevtime = time;
-        player.applyCentralForce(velocity);
-        // render using requestAnimationFrame
-        requestAnimationFrame(gameLoop);
-        // render the scene
-        renderer.render(scene, camera);
+        else {
+            player.setAngularVelocity(new Vector3(0, 0, 0));
+        }
+        //  player.applyCentralForce(velocity);
+    }
+    // Camera Look function
+    function cameraLook() {
+        var zenith = THREE.Math.degToRad(90);
+        var nadir = THREE.Math.degToRad(-90);
+        var cameraPitch = camera.rotation.x + mouseControls.pitch;
+        // Constrain the Camera Pitch
+        camera.rotation.x = THREE.Math.clamp(cameraPitch, nadir, zenith);
     }
     // Setup default renderer
     function setupRenderer() {
@@ -296,8 +329,8 @@ var game = (function () {
     // Setup main camera for the scene
     function setupCamera() {
         camera = new PerspectiveCamera(35, config.Screen.RATIO, 0.1, 100);
-        camera.position.set(0, 10, 30);
-        camera.lookAt(new Vector3(0, 0, 0));
+        //  camera.position.set(0, 10, 30);
+        //  camera.lookAt(new Vector3(0, 0, 0));
         console.log("Finished setting up Camera...");
     }
     var normal = function Normal() {
@@ -305,11 +338,10 @@ var game = (function () {
             obsticalGeometry = new BoxGeometry(2, 2, 2);
             obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial, 0);
             // obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
-            // player.position.set(0, 30, 10);
             obstical.receiveShadow = true;
             obstical.castShadow = true;
             //   obstical.name = "obstical";
-            obstical.position.set(randomIntInc(-1, 40), randomIntInc(-1, 40), randomIntInc(-1, 50));
+            obstical.position.set(randomIntInc(-1, 40), randomIntInc(-1, 25), randomIntInc(-1, 50));
             scene.add(obstical);
         }
     };
@@ -322,7 +354,7 @@ var game = (function () {
             obstical.receiveShadow = true;
             obstical.castShadow = true;
             //   obstical.name = "obstical";
-            obstical.position.set(randomIntInc(-10, 100), randomIntInc(-10, 100), randomIntInc(-10, 100));
+            obstical.position.set(randomIntInc(-50, 50), randomIntInc(-10, 50), randomIntInc(-50, 50));
             scene.add(obstical);
         }
     };
