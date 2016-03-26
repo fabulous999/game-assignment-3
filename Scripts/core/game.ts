@@ -30,9 +30,12 @@ import CScreen = config.Screen;
 import Clock = THREE.Clock;
 import LineBasicMaterial = THREE.LineBasicMaterial;
 import Line = THREE.Line;
+import Textur = THREE.Texture;
+
 
 //Custom Game Objects
 import gameObject = objects.gameObject;
+import PhongMaterial = THREE.MeshPhongMaterial;
 
 // Setup a Web Worker for Physijs
 Physijs.scripts.worker = "/Scripts/lib/Physijs/physijs_worker.js";
@@ -55,7 +58,7 @@ var game = (() => {
     var instructions: HTMLElement;
     var spotLight: SpotLight;
     var groundGeometry: CubeGeometry;
-    var groundMaterial: Physijs.Material;
+
     var ground: Physijs.Mesh;
     var clock: Clock;
     var playerGeometry: CubeGeometry;
@@ -78,7 +81,81 @@ var game = (() => {
     var directionLineMaterial: LineBasicMaterial;
     var directionLineGeometry: Geometry;
     var directionLine: Line;
-  
+     var isparkor : boolean = false;
+       var timerB : boolean;
+       
+           var groundPhysicMaterial: Physijs.Material;
+     var groundMaterial: PhongMaterial;
+       // textur
+       var groundtextur : Textur;
+       var groundTextureN: Textur;
+       
+    var deathPlaneGeometry: CubeGeometry;
+    var deathPlaneMaterial: Physijs.Material;
+    var deathPlane: Physijs.Mesh;
+    
+    
+    var assets: createjs.LoadQueue;
+    var canvas: HTMLElement;
+    var stage: createjs.Stage;
+        var scoreLabel: createjs.Text;
+    var livesLabel: createjs.Text;
+    var scoreValue: number;
+    var livesValue: number;
+    var windx : number;
+      var windy : number;
+        var windz : number;
+    
+        var manifest = [
+        { id: "land", src: "../../Assets/audio/Land.wav" },
+        { id: "hit", src: "../../Assets/audio/hit.wav" },
+        { id: "coin", src: "../../Assets/audio/coin.mp3" },
+        { id: "jump", src: "../../Assets/audio/Jump.wav" }
+    ];
+    
+      function preload(): void {
+        assets = new createjs.LoadQueue();
+        assets.installPlugin(createjs.Sound);
+        assets.on("complete", init, this);
+        assets.loadManifest(manifest);
+    }
+      function setupCanvas(): void {
+        canvas = document.getElementById("canvas");
+        canvas.setAttribute("width", config.Screen.WIDTH.toString());
+        canvas.setAttribute("height", (config.Screen.HEIGHT * 0.1).toString());
+        canvas.style.backgroundColor = "#000000";
+        stage = new createjs.Stage(canvas);
+    }
+    
+    function setupScoreboard(): void {
+        // initialize  score and lives values
+        scoreValue = 0;
+        livesValue = 5;
+
+        // Add Lives Label
+        livesLabel = new createjs.Text(
+            "LIVES: " + livesValue,
+            "40px Consolas",
+            "#ffffff"
+        );
+        livesLabel.x = config.Screen.WIDTH * 0.1;
+        livesLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        stage.addChild(livesLabel);
+        console.log("Added Lives Label to stage");
+
+        // Add Score Label
+        scoreLabel = new createjs.Text(
+            "Wind: " + windx ,  //randomIntInc(-20, 20),    // scoreValue,
+            "40px Consolas",
+            "#ffffff"
+        );
+        scoreLabel.x = config.Screen.WIDTH * 0.5;
+        scoreLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        stage.addChild(scoreLabel);
+        console.log("Added Score Label to stage");
+    }
+       
+ // var assets : createjs.LoadQue
      
   var random = function Randome(low, high) {
             return Math.random() * (high - low) + low;
@@ -91,9 +168,16 @@ var game = (() => {
             numbers[i] = randomIntInc(1, 10);
         }
     function init() {
+        
+        
         // Create to HTMLElements
         blocker = document.getElementById("blocker");
         instructions = document.getElementById("instructions");
+        
+        setupCanvas();
+
+        setupScoreboard();
+        
         
         //check to see if pointerlock is supported
         havePointerLock = 'pointerLockElement' in document ||
@@ -132,8 +216,9 @@ var game = (() => {
         // Scene changes for Physijs
         scene.name = "Main";
         scene.fog = new THREE.Fog(0xffffff, 100 , 750);
-        setInterval(function(){   scene.setGravity(new THREE.Vector3(randomIntInc(-20, 20), randomIntInc(-15, 5)/*-10*/, randomIntInc(-20, 20))); console.log(randomIntInc) /*alert("Hello");*/ },console.log("someyt"), 3000);
-
+        
+     //  setInterval(function(){   scene.setGravity(new THREE.Vector3(windx, randomIntInc(-15, 5)/*-10*/, randomIntInc(-20, 20))); /*alert("Hello");*/ },100000);
+scene.setGravity(new THREE.Vector3(windx,0,0));
      // console.log("safasf"+ scene.setGravity.call);
         scene.addEventListener('update', () => {
            scene.simulate(undefined, 2); 
@@ -164,22 +249,39 @@ var game = (() => {
         spotLight.shadowMapHeight = 2048;
         spotLight.shadowDarkness = 0.5;
         spotLight.name = "Spot Light";
-        scene.add(spotLight);
+      //  scene.add(spotLight);
         console.log("Added spotLight to scene");
         ambient = new AmbientLight(0xffffff);
       //  ambient.castShadow = true;
         ambient.getWorldScale;
-       ambient.position.set(20, 40, -15);
+       ambient.position.set(0, 40, -0);
      //   ambient.shadowDarkness = 1;
-        ambient.scale.set(1000,1000,1000);
+      //  ambient.scale.set(10,10,10);
         scene.add(ambient);
         
         // Burnt Ground
-        groundGeometry = new BoxGeometry(3200, 1, 3200);
-         ground = new Physijs.ConvexMesh(groundGeometry, groundMaterial, 0);
-        groundMaterial = Physijs.createMaterial(new LambertMaterial({ color: 0xe75d14 }), 0.4, 0);
-       
-        ground.receiveShadow = true;
+        groundtextur = new THREE.TextureLoader().load('../../Assets/images/floor.jpg');
+        groundtextur.wrapS = THREE.RepeatWrapping;
+        groundtextur.wrapS = THREE.RepeatWrapping;
+        groundtextur.repeat.set(1,1);
+        
+        groundTextureN = new THREE.TextureLoader().load('../../Assets/images/floorN.png');
+        groundTextureN.wrapS = THREE.RepeatWrapping;
+        groundTextureN.wrapS = THREE.RepeatWrapping;
+        groundTextureN.repeat.set(2,2);
+        
+        
+        
+        groundMaterial = new PhongMaterial();
+        groundMaterial.map = groundtextur;
+        groundMaterial.bumpMap = groundTextureN;
+        groundMaterial.bumpScale = 0.2;
+        groundGeometry = new BoxGeometry(32, 1, 32);
+        groundPhysicMaterial = Physijs.createMaterial(groundMaterial, 0, 0);// new LambertMaterial({ color: 0xe75d14 })
+      
+         ground = new Physijs.ConvexMesh(groundGeometry, groundPhysicMaterial, 0);
+    ground.receiveShadow = true;
+  //  ground.rotation.x = 47;
         ground.name = "Ground";
         scene.add(ground);
         console.log("Added Burnt Ground to scene");
@@ -192,8 +294,8 @@ var game = (() => {
       player.receiveShadow = true;
         player.castShadow = true;
         player.name = "Player";
-        
-     player.rotation.x =0;
+       
+   //  player.rotation.x =0;
          player.position.set(randomIntInc(3, 5), randomIntInc(3, 5), randomIntInc(3, 5));
         scene.add(player);
         player.add(camera);
@@ -203,21 +305,51 @@ var game = (() => {
         console.log("Added Player to Scene  "  +  player.position.y);
      normal();
      diferentsize();
-        
+        addDeathPlane();
         
     
         player.addEventListener('collision', (event) => {
            if(event.name === "Ground") {
-               console.log("player hit the ground");
+           createjs.Sound.play("land");
+              isparkor=false;
                isgrounded = true;
+        
+                
            }
+        //   else isgrounded = false;
            if(event.name === "Sphere") {
                console.log("player hit the sphere");
-               isgrounded = false
+               isgrounded = false;
+               
            }
+           if(event.name === "obstical")
+           { 
+               isparkor = true;   
+           }
+           if(event.name === "DeathPlane") {
+                createjs.Sound.play("hit");
+                livesValue--;
+                livesLabel.text = "LIVES: " + livesValue;
+                scene.remove(player);
+                player.position.set(0, 30, 10);
+                scene.add(player);
+            }
+         
         });
-        
-        
+                       if (timerB = false)
+              {
+                    setTimeout(function(){  isparkor = false,console.log("is false", timerB.valueOf) }, 10000);   
+              }
+     if (isgrounded = false)
+              {
+          }
+             setInterval(function(){  if (isgrounded = false)
+              {
+              isgrounded = true; 
+             }    
+             else isgrounded = true;
+                 console.log("is grouded", isgrounded) }, 5000);
+           
         // Sphere Object
         sphereGeometry = new SphereGeometry(2, 32, 32);
         sphereMaterial = Physijs.createMaterial(new LambertMaterial({color: 0x00ff00}), 0.4, 0);
@@ -245,6 +377,33 @@ var game = (() => {
         
         window.addEventListener('resize', onWindowResize, false);
     }
+      function setCenter ( geometry:Geometry ): Vector3 {
+
+		geometry.computeBoundingBox();
+
+		var bb = geometry.boundingBox;
+
+		var offset = new THREE.Vector3();
+
+		offset.addVectors( bb.min, bb.max );
+		offset.multiplyScalar( -0.5 );
+
+		geometry.applyMatrix( new THREE.Matrix4().makeTranslation( offset.x, offset.y, offset.z ) );
+		geometry.computeBoundingBox();
+
+		return offset;
+	}
+    
+    
+    function addDeathPlane():void {
+        deathPlaneGeometry = new BoxGeometry(100, 1, 100);
+        deathPlaneMaterial = Physijs.createMaterial(new MeshBasicMaterial({color: 0xff0000}), 0.4, 0.6);
+       
+        deathPlane =  new Physijs.BoxMesh(deathPlaneGeometry, deathPlaneMaterial, 0);
+        deathPlane.position.set(0, -10, 0);
+        deathPlane.name = "DeathPlane";
+        scene.add(deathPlane);
+}
     
     //PointerLockChange Event Handler
     function pointerLockChange(event): void {
@@ -276,6 +435,13 @@ var game = (() => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        
+          canvas.style.width = "100%";
+        livesLabel.x = config.Screen.WIDTH * 0.1;
+        livesLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        scoreLabel.x = config.Screen.WIDTH * 0.8;
+        scoreLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        stage.update();
     }
 
     function addControl(controlObject: Control): void {
@@ -291,20 +457,24 @@ var game = (() => {
         stats.domElement.style.top = '0px';
         document.body.appendChild(stats.domElement);
     }
-
+ setInterval(function() {windx = randomIntInc(-20,20) }, 10000); 
+        
     // Setup main game loop
     function gameLoop(): void {
         stats.update();
          checkcontrols();
+             scoreLabel.text = "wind x: " + windx  ; //windx
+        scene.setGravity(new THREE.Vector3(windx,windy,windz));
+   
    //   obstical.quaternion.set(1,1,1,1);
            
-      player.rotation.x = 0;
-            player.rotation.y = 0;
-          player.rotation.z = 0;
+    //  player.rotation.x = 0;
+     //       player.rotation.y = 0;
+     //     player.rotation.z = 0;
     
         // render using requestAnimationFrame
         requestAnimationFrame(gameLoop);
-
+       stage.update();
         // render the scene
         renderer.render(scene, camera);
     }
@@ -334,18 +504,19 @@ var game = (() => {
                     velocity.x += 4  * delta;
                 }
                 if (keyboardControls.shift) {
-                    console.log("shiy");
-                   // velocity.x * 2 * delta;
-                   // velocity.y * 2 * delta;
-                //   camera.lookAt(ground.position);
-                 
-       
-                 
+                    if(isparkor){              
+                         velocity.y += 10  * delta;
+                     setTimeout(function(){  isparkor = false , timerB = false; console.log("it :"+ timerB  + isparkor); }, 3000);
+                       }
+                   // velocity.x * 2 * delta;  velocity.y * 2 * delta; camera.lookAt(ground.position); obstical.position.x = 5; //obstical.position.set(1,1,1);  //  velocity.y = velocity.y  + 10;
                 }
                 if (keyboardControls.jump) {
                     console.log("Jumping");
-                     camera.lookAt(ground.position);
+                   //  camera.lookAt(ground.position);
                velocity.y += 20.0  * delta;
+                    setTimeout(function(){ isgrounded = false; console.log("it : "+ isgrounded); }, 100);
+					
+                   
                     if(player.position.y > 4)
                     {
                        // isgrounded = false
@@ -361,8 +532,9 @@ var game = (() => {
                     player.applyCentralForce(direction);
                 }
                 console.log(velocity.x);
-         cameraLook();
+         
         }
+        cameraLook();
            mouseControls.pitch = 0;
             mouseControls.yaw = 0;
             prevtime = time;
@@ -440,11 +612,12 @@ var game = (() => {
         for (var i = 0; i < 30; i++) {
           obsticalGeometry = new BoxGeometry(2, 2, 2);
             obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
+       obstical.name="obstical";
        // obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
         obstical.receiveShadow = true;
         obstical.castShadow = true;
      //   obstical.name = "obstical";
-         obstical.position.set(randomIntInc(-1, 40), randomIntInc(-1, 25), randomIntInc(-1, 50));
+         obstical.position.set(randomIntInc(-20, 20), randomIntInc(-1, 15), randomIntInc(-1, 20));
         scene.add(obstical);
        
       /*  if (obstical.position.x > -100 || obstical.position.x > 100) {
@@ -457,23 +630,23 @@ var game = (() => {
        }
            var diferentsize = function Diferentsize() {
         
-        for (var i = 0; i < 100; i++) {
+        for (var i = 0; i < 15; i++) {
           obsticalGeometry = new BoxGeometry(randomIntInc(1,10),randomIntInc(1,10),randomIntInc(1,10));
                obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
       //  obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
-   
+       obstical.name="obstical";
       // player.position.set(0, 30, 10);
       obstical.receiveShadow = true;
         obstical.castShadow = true;
      //   obstical.name = "obstical";
-         obstical.position.set(randomIntInc(-50, 50), randomIntInc(-10, 50), randomIntInc(-50, 50));
+         obstical.position.set(randomIntInc(-20, 20), randomIntInc(-1, 25), randomIntInc(-20, 20));
         scene.add(obstical);
            
       //  console.log("Added Player to Scene  "  +  obstical.position.y);
         }   
        }
      
-    window.onload = init;
+    window.onload = preload; //init;
 
     return {
         scene: scene
