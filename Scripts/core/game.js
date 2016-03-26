@@ -79,9 +79,15 @@ var game = (function () {
     // textur
     var groundtextur;
     var groundTextureN;
+    var goaltextur;
+    var goalTextureN;
+    var goal;
+    var goalGeometry;
+    var goalMaterial;
     var deathPlaneGeometry;
     var deathPlaneMaterial;
     var deathPlane;
+    var goalPhysicMaterial;
     var assets;
     var canvas;
     var stage;
@@ -96,7 +102,8 @@ var game = (function () {
         { id: "land", src: "../../Assets/audio/Land.wav" },
         { id: "hit", src: "../../Assets/audio/hit.wav" },
         { id: "coin", src: "../../Assets/audio/coin.mp3" },
-        { id: "jump", src: "../../Assets/audio/Jump.wav" }
+        { id: "jump", src: "../../Assets/audio/Jump.wav" },
+        { id: "over", src: "../../Assets/audio/gameover.mp3" }
     ];
     function preload() {
         assets = new createjs.LoadQueue();
@@ -124,7 +131,7 @@ var game = (function () {
         // Add Score Label
         scoreLabel = new createjs.Text("Wind: " + windx, //randomIntInc(-20, 20),    // scoreValue,
         "40px Consolas", "#ffffff");
-        scoreLabel.x = config.Screen.WIDTH * 0.5;
+        scoreLabel.x = config.Screen.WIDTH * 0.35;
         scoreLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
         stage.addChild(scoreLabel);
         console.log("Added Score Label to stage");
@@ -173,7 +180,7 @@ var game = (function () {
         scene.name = "Main";
         scene.fog = new THREE.Fog(0xffffff, 100, 750);
         //  setInterval(function(){   scene.setGravity(new THREE.Vector3(windx, randomIntInc(-15, 5)/*-10*/, randomIntInc(-20, 20))); /*alert("Hello");*/ },100000);
-        scene.setGravity(new THREE.Vector3(windx, 0, 0));
+        scene.setGravity(new THREE.Vector3(windx, windy, windz));
         // console.log("safasf"+ scene.setGravity.call);
         scene.addEventListener('update', function () {
             scene.simulate(undefined, 2);
@@ -245,6 +252,7 @@ var game = (function () {
         normal();
         diferentsize();
         addDeathPlane();
+        goals();
         player.addEventListener('collision', function (event) {
             if (event.name === "Ground") {
                 createjs.Sound.play("land");
@@ -266,6 +274,19 @@ var game = (function () {
                 scene.remove(player);
                 player.position.set(0, 30, 10);
                 scene.add(player);
+                if (livesValue <= 0) {
+                    createjs.Sound.play("over");
+                    scene.remove(player);
+                }
+            }
+            if (event.name === "goal") {
+                createjs.Sound.play("over");
+                livesValue = 0;
+                livesLabel.text = "LIVES: " + livesValue;
+                if (livesValue <= 0) {
+                    createjs.Sound.play("over");
+                    scene.remove(player);
+                }
             }
         });
         if (timerB = false) {
@@ -281,16 +302,6 @@ var game = (function () {
                 isgrounded = true;
             console.log("is grouded", isgrounded);
         }, 5000);
-        // Sphere Object
-        sphereGeometry = new SphereGeometry(2, 32, 32);
-        sphereMaterial = Physijs.createMaterial(new LambertMaterial({ color: 0x00ff00 }), 0.4, 0);
-        sphere = new Physijs.SphereMesh(sphereGeometry, sphereMaterial, 1);
-        sphere.position.set(0, 60, 10);
-        sphere.receiveShadow = true;
-        sphere.castShadow = true;
-        sphere.name = "Sphere";
-        scene.add(sphere);
-        console.log("Added Sphere to Scene");
         // add controls
         gui = new GUI();
         control = new Control();
@@ -369,13 +380,15 @@ var game = (function () {
         stats.domElement.style.top = '0px';
         document.body.appendChild(stats.domElement);
     }
-    setInterval(function () { windx = randomIntInc(-20, 20); }, 10000);
+    setInterval(function () { windx = randomIntInc(-10, 10); }, 10000);
+    setInterval(function () { windy = randomIntInc(-15, -1); }, 10000);
+    setInterval(function () { windz = randomIntInc(-10, 10); }, 10000);
     // Setup main game loop
     function gameLoop() {
         stats.update();
         checkcontrols();
-        scoreLabel.text = "wind x: " + windx; //windx
-        scene.setGravity(new THREE.Vector3(windx, 0, 0));
+        scoreLabel.text = "wind x:" + windx + "   wind y:" + windy + "  wind z: " + windz; //windx
+        scene.setGravity(new THREE.Vector3(windx, windy, windz));
         //   obstical.quaternion.set(1,1,1,1);
         //  player.rotation.x = 0;
         //       player.rotation.y = 0;
@@ -420,8 +433,6 @@ var game = (function () {
                     //  camera.lookAt(ground.position);
                     velocity.y += 20.0 * delta;
                     setTimeout(function () { isgrounded = false; console.log("it : " + isgrounded); }, 100);
-                    if (player.position.y > 4) {
-                    }
                 }
                 player.setDamping(0.7, 0.1);
                 // Changing player's rotation
@@ -494,9 +505,44 @@ var game = (function () {
             scene.add(obstical);
         }
     };
+    var goals = function goalss() {
+        for (var i = 0; i < 5; i++) {
+            goaltextur = new THREE.TextureLoader().load('../../Assets/images/wall.jpg');
+            goaltextur.wrapS = THREE.RepeatWrapping;
+            goaltextur.wrapS = THREE.RepeatWrapping;
+            goaltextur.repeat.set(1, 1);
+            goalTextureN = new THREE.TextureLoader().load('../../Assets/images/wall.png');
+            goalTextureN.wrapS = THREE.RepeatWrapping;
+            goalTextureN.wrapS = THREE.RepeatWrapping;
+            goalTextureN.repeat.set(2, 2);
+            goalMaterial = new PhongMaterial();
+            goalMaterial.map = goaltextur;
+            goalMaterial.bumpMap = goalTextureN;
+            goalMaterial.bumpScale = 0.2;
+            goalPhysicMaterial = Physijs.createMaterial(groundMaterial, 0, 0); // new LambertMaterial({ color: 0xe75d14 })
+            goalGeometry = new BoxGeometry(randomIntInc(5, 10), randomIntInc(5, 10), randomIntInc(5, 10));
+            goal = new Physijs.BoxMesh(goalGeometry, goalMaterial, -0.1);
+            //  obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
+            goal.name = "goal";
+            goal.position.set(randomIntInc(-30, 30), randomIntInc(20, 30), randomIntInc(-30, 30));
+            scene.add(goal);
+        }
+    };
     window.onload = preload; //init;
     return {
         scene: scene
     };
 })();
+/*
+        // Sphere Object
+        sphereGeometry = new SphereGeometry(2, 32, 32);
+        sphereMaterial = Physijs.createMaterial(new LambertMaterial({color: 0x00ff00}), 0.4, 0);
+        sphere = new Physijs.SphereMesh(sphereGeometry, sphereMaterial, 1);
+        sphere.position.set(0, 60, 10);
+        sphere.receiveShadow = true;
+        sphere.castShadow = true;
+        sphere.name = "Sphere";
+        scene.add(sphere);
+        console.log("Added Sphere to Scene");
+        */
 //# sourceMappingURL=game.js.map
