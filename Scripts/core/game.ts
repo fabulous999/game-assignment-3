@@ -516,8 +516,9 @@ scene.setGravity(new THREE.Vector3(windx,windy,windz));
                 }
                 if (keyboardControls.shift) {
                     if(isparkor){              
-                         velocity.y += 10  * delta;
-                     setTimeout(function(){  isparkor = false , timerB = false; console.log("it :"+ timerB  + isparkor); }, 3000);
+                         velocity.y += 2  * delta;
+                  
+                     setTimeout(function(){  isparkor = false , timerB = false;   createjs.Sound.play("jump"); console.log("it :"+ timerB  + isparkor); }, 3000);
                        }
                    // velocity.x * 2 * delta;  velocity.y * 2 * delta; camera.lookAt(ground.position); obstical.position.x = 5; //obstical.position.set(1,1,1);  //  velocity.y = velocity.y  + 10;
                 }
@@ -545,6 +546,7 @@ scene.setGravity(new THREE.Vector3(windx,windy,windz));
     }
      else {
             player.setAngularVelocity(new Vector3(0, 0, 0));
+            player.setAngularFactor(new Vector3(0,0,0));
         }
 
   //  player.applyCentralForce(velocity);
@@ -613,7 +615,7 @@ scene.setGravity(new THREE.Vector3(windx,windy,windz));
 
        var normal = function Normal() {
         
-        for (var i = 0; i < 30; i++) {
+        for (var i = 0; i < 20; i++) {
           obsticalGeometry = new BoxGeometry(2, 2, 2);
             obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
        obstical.name="obstical";
@@ -628,7 +630,7 @@ scene.setGravity(new THREE.Vector3(windx,windy,windz));
        }
   var diferentsize = function Diferentsize() {
         
-        for (var i = 0; i < 15; i++) {
+        for (var i = 0; i < 10; i++) {
           obsticalGeometry = new BoxGeometry(randomIntInc(1,10),randomIntInc(1,10),randomIntInc(1,10));
                obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial,0);
       //  obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   

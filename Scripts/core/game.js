@@ -424,8 +424,8 @@ var game = (function () {
                 }
                 if (keyboardControls.shift) {
                     if (isparkor) {
-                        velocity.y += 10 * delta;
-                        setTimeout(function () { isparkor = false, timerB = false; console.log("it :" + timerB + isparkor); }, 3000);
+                        velocity.y += 2 * delta;
+                        setTimeout(function () { isparkor = false, timerB = false; createjs.Sound.play("jump"); console.log("it :" + timerB + isparkor); }, 3000);
                     }
                 }
                 if (keyboardControls.jump) {
@@ -451,6 +451,7 @@ var game = (function () {
         }
         else {
             player.setAngularVelocity(new Vector3(0, 0, 0));
+            player.setAngularFactor(new Vector3(0, 0, 0));
         }
         //  player.applyCentralForce(velocity);
     }
@@ -479,7 +480,7 @@ var game = (function () {
         console.log("Finished setting up Camera...");
     }
     var normal = function Normal() {
-        for (var i = 0; i < 30; i++) {
+        for (var i = 0; i < 20; i++) {
             obsticalGeometry = new BoxGeometry(2, 2, 2);
             obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial, 0);
             obstical.name = "obstical";
@@ -492,7 +493,7 @@ var game = (function () {
         }
     };
     var diferentsize = function Diferentsize() {
-        for (var i = 0; i < 15; i++) {
+        for (var i = 0; i < 10; i++) {
             obsticalGeometry = new BoxGeometry(randomIntInc(1, 10), randomIntInc(1, 10), randomIntInc(1, 10));
             obstical = new Physijs.BoxMesh(obsticalGeometry, obsticalMaterial, 0);
             //  obsticalMaterial = Physijs.createMaterial(new LambertMaterial({color: 0xffffff}), 0.4, 0);   
